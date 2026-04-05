@@ -112,3 +112,13 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const logout = async (req: AuthRequest, res: Response) => {
+  try {
+    // For stateless JWT, we simply return success.
+    // Client side will remove the token from storage.
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};

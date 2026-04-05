@@ -12,6 +12,11 @@ const createUserSchema = z.object({
   role: z.nativeEnum(Role).default(Role.SALES_EXEC),
 });
 
+const updateUserSchema = z.object({
+  password: z.string().min(8).optional(),
+  role: z.nativeEnum(Role).optional(),
+});
+
 export const getAgents = async (req: AuthRequest, res: Response) => {
   try {
     const businessId = await resolveBusinessId(req);
@@ -97,6 +102,52 @@ export const deleteAgent = async (req: AuthRequest, res: Response) => {
     ]);
 
     res.json({ message: 'User removed from business' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateAgent = async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const businessId = await resolveBusinessId(req);
+    if (!businessId) return res.status(404).json({ error: 'Business not found' });
+
+    const parsed = updateUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      // Return first error message as string to prevent frontend crashes
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const firstError = Object.values(fieldErrors).flat()[0] || 'Invalid input';
+      return res.status(400).json({ error: firstError });
+    }
+
+    const { password, role } = parsed.data;
+
+    // Verify user belongs to same business
+    const userToUpdate = await prisma.user.findFirst({
+      where: { id, businessId }
+    });
+
+    if (!userToUpdate) return res.status(404).json({ error: 'User not found in this business' });
+
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
+
+    const updateData: any = {};
+    if (hashedPassword) updateData.password = hashedPassword;
+    if (role) updateData.role = role;
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      }
+    });
+
+    res.json(updated);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

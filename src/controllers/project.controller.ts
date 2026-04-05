@@ -18,6 +18,7 @@ const createProjectSchema = z.object({
 const updateProjectSchema = createProjectSchema.partial().extend({
   status: z.nativeEnum(ProjectStatus).optional(),
   paidAmount: z.number().nonnegative().optional(),
+  progress: z.number().min(0).max(100).optional(),
 });
 
 export const getProjects = async (req: AuthRequest, res: Response) => {
@@ -58,12 +59,16 @@ export const createProject = async (req: AuthRequest, res: Response) => {
     if (!lead) return res.status(404).json({ error: 'Lead not found for this business' });
     if (!service) return res.status(404).json({ error: 'Service not found for this business' });
 
+    const { leadId, serviceId, startDate, endDate, ...rest } = parsed.data;
+
     const project = await prisma.project.create({
       data: {
-        ...parsed.data, 
-        businessId,
-        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : new Date(),
-        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null
+        ...rest, 
+        business: { connect: { id: businessId } },
+        lead: { connect: { id: leadId } },
+        service: { connect: { id: serviceId } },
+        startDate: startDate ? new Date(startDate) : new Date(),
+        endDate: endDate ? new Date(endDate) : null
       },
       include: {
         lead: { select: { id: true, name: true } },
@@ -91,12 +96,16 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     });
     if (!existing) return res.status(404).json({ error: 'Project not found' });
 
+    const { leadId, serviceId, startDate, endDate, ...rest } = parsed.data;
+
     const project = await prisma.project.update({
       where: { id },
       data: {
-        ...parsed.data,
-        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : undefined,
-        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : undefined
+        ...rest,
+        lead: leadId ? { connect: { id: leadId } } : undefined,
+        service: serviceId ? { connect: { id: serviceId } } : undefined,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined
       },
       include: {
         lead: { select: { id: true, name: true } },
