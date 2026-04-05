@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: whatsapp-crm-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: your-database-name-if-internal
+          column: connectionString
