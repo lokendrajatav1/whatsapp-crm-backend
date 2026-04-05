@@ -1,0 +1,26 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // File Layout
+    // "rootDir": "./src",
+    // "outDir": "./dist",
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "target": "es2022",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    // Recommended Options
+    "strict": true,
+    "skipLibCheck": true,
+  }
+}

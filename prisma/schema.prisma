@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  password      String
+  role          Role          @default(ADMIN)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  businessId    String?
+  assignedLeads Lead[]        @relation("AgentAssignment")
+  business      Business?     @relation(fields: [businessId], references: [id])
+  remarks       LeadRemark[]  @relation("RemarkAuthor")
+}
+
+model Business {
+  id             String          @id @default(uuid())
+  name           String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  autoReplyRules AutoReplyRule[]
+  leads          Lead[]
+  subscription   Subscription?
+  users          User[]
+  whatsappConfig WhatsAppConfig?
+  services       Service[]
+  projects       Project[]
+}
+
+model Subscription {
+  id         String           @id @default(uuid())
+  plan       SubscriptionPlan @default(FREE)
+  startDate  DateTime         @default(now())
+  endDate    DateTime?
+  businessId String           @unique
+  isActive   Boolean          @default(true)
+  business   Business         @relation(fields: [businessId], references: [id])
+}
+
+model Lead {
+  id           String       @id @default(uuid())
+  leadSerial   Int          @default(autoincrement())
+  name         String
+  phone        String
+  businessName String?
+  status       LeadStatus   @default(NEW)
+  source       String?
+  callerName   String?
+  businessId   String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  assignedToId String?
+  notes        String?
+  tags         String[]     @default([])
+  assignedTo   User?        @relation("AgentAssignment", fields: [assignedToId], references: [id])
+  business     Business     @relation(fields: [businessId], references: [id])
+  messages     Message[]
+  reminders    Reminder[]
+  remarks      LeadRemark[]
+  projects     Project[]
+
+  @@index([phone])
+  @@index([businessId])
+}
+
+model LeadRemark {
+  id        String   @id @default(uuid())
+  content   String
+  leadId    String
+  createdAt DateTime @default(now())
+  authorId  String
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  author    User     @relation("RemarkAuthor", fields: [authorId], references: [id])
+}
+
+model Service {
+  id          String      @id @default(uuid())
+  name        String
+  type        ServiceType @default(MONTHLY)
+  basePrice   Float
+  description String?
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id])
+  projects    Project[]
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  name         String
+  status       ProjectStatus @default(PENDING)
+  leadId       String
+  serviceId    String
+  businessId   String
+  startDate    DateTime      @default(now())
+  endDate      DateTime?
+  totalValue   Float
+  paidAmount   Float         @default(0)
+  milestones   Json?
+  lead         Lead          @relation(fields: [leadId], references: [id])
+  service      Service       @relation(fields: [serviceId], references: [id])
+  business     Business      @relation(fields: [businessId], references: [id])
+  invoices     Invoice[]
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  projectId   String
+  amount      Float
+  status      InvoiceStatus @default(PENDING)
+  taxAmount   Float?
+  dueDate     DateTime
+  createdAt   DateTime      @default(now())
+  project     Project       @relation(fields: [projectId], references: [id])
+}
+
+model Message {
+  id         String           @id @default(uuid())
+  content    String?
+  type       MessageType      @default(TEXT)
+  leadId     String
+  createdAt  DateTime         @default(now())
+  direction  MessageDirection @default(OUTBOUND)
+  mediaUrl   String?
+  status     MessageStatus    @default(SENT)
+  whatsappId String?          @unique
+  lead       Lead             @relation(fields: [leadId], references: [id])
+}
+
+model AutoReplyRule {
+  id         String   @id @default(uuid())
+  keyword    String?
+  response   String
+  isActive   Boolean  @default(true)
+  businessId String
+  type       String   @default("KEYWORD")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId])
+}
+
+model Reminder {
+  id        String   @id @default(uuid())
+  date      DateTime
+  note      String
+  leadId    String
+  isDone    Boolean  @default(false)
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id])
+}
+
+model WhatsAppConfig {
+  id            String   @id @default(uuid())
+  businessId    String   @unique
+  phoneNumberId String
+  accessToken   String
+  webhookToken  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  business      Business @relation(fields: [businessId], references: [id])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEAM_LEADER
+  SALES_EXEC
+  ACCOUNT_MANAGER
+  FINANCE
+}
+
+enum LeadStatus {
+  NEW
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CLOSED
+  DEAD
+}
+
+enum ServiceType {
+  MONTHLY
+  ANNUAL
+  ONE_TIME
+}
+
+enum ProjectStatus {
+  PENDING
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  PARTIAL
+  OVERDUE
+}
+
+enum MessageType {
+  AUTO
+  MANUAL
+  TEXT
+  IMAGE
+  DOCUMENT
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
