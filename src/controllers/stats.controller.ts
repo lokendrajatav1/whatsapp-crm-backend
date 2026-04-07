@@ -3,31 +3,8 @@ import prisma from '../config/prisma';
 import { AuthRequest } from '../types/express';
 import { resolveBusinessId } from '../lib/businessResolver';
 
-// Fallback Enums to ensure compilation even if Prisma type-generation is stale in the editor
-enum Role {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  TEAM_LEADER = 'TEAM_LEADER',
-  SALES_EXEC = 'SALES_EXEC',
-  ACCOUNT_MANAGER = 'ACCOUNT_MANAGER',
-  FINANCE = 'FINANCE'
-}
+import { Role, LeadStatus, InvoiceStatus } from '@prisma/client';
 
-enum LeadStatus {
-  NEW = 'NEW',
-  IN_PROGRESS = 'IN_PROGRESS',
-  ON_HOLD = 'ON_HOLD',
-  COMPLETED = 'COMPLETED',
-  CLOSED = 'CLOSED',
-  DEAD = 'DEAD'
-}
-
-enum InvoiceStatus {
-  PENDING = 'PENDING',
-  PAID = 'PAID',
-  PARTIAL = 'PARTIAL',
-  OVERDUE = 'OVERDUE'
-}
 
 const getDateRange = (period: string, start?: string, end?: string) => {
   const now = new Date();
@@ -121,7 +98,15 @@ export const getStats = async (req: AuthRequest, res: Response) => {
       prisma.lead.count({ where: leadFilter }),
       prisma.lead.count({ where: { ...leadFilter, status: LeadStatus.NEW } }),
       prisma.lead.count({ where: { ...leadFilter, status: LeadStatus.IN_PROGRESS } }),
-      prisma.lead.count({ where: { ...leadFilter, status: LeadStatus.CLOSED } }),
+      prisma.lead.count({ 
+        where: { 
+          ...leadFilter, 
+          OR: [
+            { status: LeadStatus.CLOSED },
+            { projects: { some: {} } }
+          ]
+        } 
+      }),
       prisma.project.count({ 
         where: { 
           businessId, 
@@ -176,20 +161,11 @@ export const getTeamStats = async (req: AuthRequest, res: Response) => {
     // Fetch all users in the business along with their performance metrics
     const users = await prisma.user.findMany({
       where: { businessId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
+      include: {
         assignedLeads: {
           where: dateFilter ? { createdAt: dateFilter } : {},
-          select: {
-            status: true,
-            projects: {
-              select: {
-                paidAmount: true,
-                startDate: true
-              }
-            }
+          include: {
+            projects: true
           }
         }
       }
@@ -197,7 +173,7 @@ export const getTeamStats = async (req: AuthRequest, res: Response) => {
 
     const performance = users.map(user => {
       const totalLeads = user.assignedLeads.length;
-      const closedLeads = user.assignedLeads.filter(l => l.status === 'CLOSED').length;
+      const closedLeads = user.assignedLeads.filter(l => l.status === LeadStatus.CLOSED || l.projects.length > 0).length;
       
       // Calculate revenue from projects linked to leads assigned to this user
       const totalRevenue = user.assignedLeads.reduce((acc, lead) => {
@@ -209,7 +185,7 @@ export const getTeamStats = async (req: AuthRequest, res: Response) => {
 
       return {
         id: user.id,
-        name: user.email.split('@')[0], 
+        name: user.name || user.email.split('@')[0], 
         email: user.email,
         role: user.role,
         conversionRate: totalLeads > 0 ? (closedLeads / totalLeads) * 100 : 0,

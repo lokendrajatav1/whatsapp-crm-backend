@@ -8,6 +8,8 @@ datasource db {
 
 model User {
   id            String        @id @default(uuid())
+  name          String?
+  phone         String?
   email         String        @unique
   password      String
   role          Role          @default(ADMIN)
@@ -67,6 +69,9 @@ model Lead {
 
   @@index([phone])
   @@index([businessId])
+  @@index([assignedToId])
+  @@index([updatedAt(sort: Desc)])
+  @@index([status])
 }
 
 model LeadRemark {
@@ -77,6 +82,8 @@ model LeadRemark {
   authorId  String
   lead      Lead     @relation(fields: [leadId], references: [id])
   author    User     @relation("RemarkAuthor", fields: [authorId], references: [id])
+
+  @@index([leadId])
 }
 
 model Service {
@@ -88,6 +95,8 @@ model Service {
   businessId  String
   business    Business    @relation(fields: [businessId], references: [id])
   projects    Project[]
+
+  @@index([businessId])
 }
 
 model Project {
@@ -107,6 +116,10 @@ model Project {
   service      Service       @relation(fields: [serviceId], references: [id])
   business     Business      @relation(fields: [businessId], references: [id])
   invoices     Invoice[]
+
+  @@index([businessId])
+  @@index([leadId])
+  @@index([status])
 }
 
 model Invoice {
@@ -118,6 +131,8 @@ model Invoice {
   dueDate     DateTime
   createdAt   DateTime      @default(now())
   project     Project       @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
 }
 
 model Message {
@@ -131,6 +146,9 @@ model Message {
   status     MessageStatus    @default(SENT)
   whatsappId String?          @unique
   lead       Lead             @relation(fields: [leadId], references: [id])
+
+  @@index([leadId])
+  @@index([createdAt])
 }
 
 model AutoReplyRule {
@@ -175,7 +193,6 @@ enum Role {
   TEAM_LEADER
   SALES_EXEC
   ACCOUNT_MANAGER
-  FINANCE
 }
 
 enum LeadStatus {

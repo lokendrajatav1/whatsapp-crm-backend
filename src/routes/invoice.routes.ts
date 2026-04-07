@@ -6,8 +6,8 @@ const router = Router();
 
 router.use(protect);
 
-// Invoices managed by FINANCE and ADMIN
-const financeManager = hasRole('ADMIN', 'FINANCE');
+// Invoices managed by ACCOUNT_MANAGER and ADMIN
+const financeManager = hasRole('ADMIN', 'ACCOUNT_MANAGER');
 
 router.get('/', getInvoices);
 router.post('/', financeManager, createInvoice);

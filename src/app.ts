@@ -18,10 +18,12 @@ import serviceRoutes from './routes/service.routes';
 import projectRoutes from './routes/project.routes';
 import invoiceRoutes from './routes/invoice.routes';
 import { errorHandler } from './middlewares/errorHandler.middleware';
+import { requestTiming } from './middlewares/timing.middleware';
 
 const app: Express = express();
 
-// Security Middlewares
+// Performance & Security Middlewares
+app.use(requestTiming);
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',

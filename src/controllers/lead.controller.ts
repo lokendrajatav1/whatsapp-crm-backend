@@ -180,6 +180,16 @@ export const updateLead = async (req: AuthRequest, res: Response) => {
       data: parsed.data,
       include: { assignedTo: { select: { id: true, email: true } } }
     });
+
+    // Notify if assignment changed
+    if (parsed.data.assignedToId && parsed.data.assignedToId !== existing.assignedToId) {
+      getIO().to(`business:${businessId}`).emit('lead:assigned', {
+        leadId: lead.id,
+        leadName: lead.name,
+        agentId: lead.assignedToId
+      });
+    }
+
     res.json(lead);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

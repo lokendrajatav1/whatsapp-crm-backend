@@ -8,11 +8,16 @@ import { resolveBusinessId } from '../lib/businessResolver';
 
 const createUserSchema = z.object({
   email: z.string().email(),
+  name: z.string().min(2),
+  phone: z.string().optional(),
   password: z.string().min(8),
   role: z.nativeEnum(Role).default(Role.SALES_EXEC),
 });
 
 const updateUserSchema = z.object({
+  email: z.string().email().optional(),
+  name: z.string().min(2).optional(),
+  phone: z.string().optional(),
   password: z.string().min(8).optional(),
   role: z.nativeEnum(Role).optional(),
 });
@@ -27,6 +32,8 @@ export const getAgents = async (req: AuthRequest, res: Response) => {
       select: {
         id: true,
         email: true,
+        name: true,
+        phone: true,
         role: true,
         createdAt: true,
       },
@@ -49,7 +56,7 @@ export const createAgent = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     }
 
-    const { email, password, role } = parsed.data;
+    const { email, password, role, name, phone } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(400).json({ error: 'User already exists' });
@@ -60,12 +67,16 @@ export const createAgent = async (req: AuthRequest, res: Response) => {
       data: {
         email,
         password: hashedPassword,
+        name,
+        phone,
         role: role as Role,
         businessId
       },
       select: {
         id: true,
         email: true,
+        name: true,
+        phone: true,
         role: true,
         createdAt: true,
       }
@@ -121,7 +132,7 @@ export const updateAgent = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: firstError });
     }
 
-    const { password, role } = parsed.data;
+    const { password, role, name, phone, email: newEmail } = parsed.data;
 
     // Verify user belongs to same business
     const userToUpdate = await prisma.user.findFirst({
@@ -135,6 +146,9 @@ export const updateAgent = async (req: AuthRequest, res: Response) => {
     const updateData: any = {};
     if (hashedPassword) updateData.password = hashedPassword;
     if (role) updateData.role = role;
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (newEmail) updateData.email = newEmail;
 
     const updated = await prisma.user.update({
       where: { id },
@@ -142,6 +156,8 @@ export const updateAgent = async (req: AuthRequest, res: Response) => {
       select: {
         id: true,
         email: true,
+        name: true,
+        phone: true,
         role: true,
         createdAt: true,
       }

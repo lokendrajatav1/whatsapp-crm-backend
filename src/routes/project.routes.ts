@@ -11,7 +11,7 @@ const managers = [Role.ADMIN, Role.TEAM_LEADER, Role.ACCOUNT_MANAGER];
 
 router.get('/', getProjects);
 router.post('/', hasRole(...managers), createProject);
-router.patch('/:id', hasRole(...managers, Role.FINANCE), updateProject);
+router.patch('/:id', hasRole(...managers), updateProject);
 router.delete('/:id', hasRole(...managers), deleteProject);
 
 export default router;
