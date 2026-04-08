@@ -57,7 +57,6 @@ async function main() {
     { email: 'tl@agency.com', role: 'TEAM_LEADER' as any },
     { email: 'sales@agency.com', role: 'SALES_EXEC' as any },
     { email: 'am@agency.com', role: 'ACCOUNT_MANAGER' as any },
-    { email: 'finance@agency.com', role: 'FINANCE' as any },
   ];
 
   for (const u of roles) {
